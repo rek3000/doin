@@ -1,25 +1,69 @@
 use anyhow::{Context, Result};
 use clap::Parser;
-use log::{info, warn};
-use env_logger;
+use std::io;
+use std::io::Write;
 
-#[derive(Parser)]
-struct Cli {
-    path: std::path::PathBuf,
-    #[command(flatten)]
-    verbose: clap_verbosity_flag::Verbosity,
-    // time: i32,
-}
+pub mod utils;
+pub mod types;
+
 
 fn main() -> Result<()> {
-    env_logger::init();
-    info!("Starting up");
-    warn!("oops, xd");
-    let args = Cli::parse();
+    let mut items: Vec<types::Item> = Vec::new();
+    let args = types::Cli::parse();
 
     let content = std::fs::read_to_string(&args.path)
         .with_context(|| format!("Could not read file `{}`", args.path.display()))?;
-    println!("file content: {}", content);
+
+    let mut index = 1;
+    for line in content.lines() {
+        let item = types::Item {
+            id: index,
+            content: String::from(line),
+        };
+        items.push(item);
+        index += 1;
+    }
+    loop {
+        let mut choice = String::new();
+        println!("-------DOIN--------");
+        println!("[1]. Display Tasks");
+        println!("[2]. Create New Tasks");
+        println!("[3]. Delete Tasks");
+        println!("[4]. Edit Tasks");
+        println!("[-1]. Quit");
+        print!("> ");
+        io::stdout().flush().unwrap();
+        io::stdin()
+            .read_line(&mut choice)
+            .expect("Failed to read line");
+
+        let choice: i32 = match choice.trim().parse() {
+            Ok(num) => num,
+            Err(_) => {
+                println!();
+                continue;
+            },
+        };
+
+        match choice {
+            1 => {
+                utils::display_task(&items);
+            },
+            2 => {
+                utils::create_task(&mut items);
+            },
+            3 => { 
+                utils::delete_task(&mut items);
+            },
+            4 => println!("Editing Tasks"),
+            _ => { 
+                println!("Goodbye!");
+                break;
+            },
+        }
+        println!();
+    }
+
     Ok(())
 }
 

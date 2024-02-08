@@ -11,6 +11,7 @@ fn main() -> Result<()> {
     let mut items: Vec<types::Item> = Vec::new();
     let args = types::Cli::parse();
 
+    // Read file to String
     let content = std::fs::read_to_string(&args.path)
         .with_context(|| format!("Could not read file `{}`", args.path.display()))?;
 
@@ -26,11 +27,12 @@ fn main() -> Result<()> {
     loop {
         let mut choice = String::new();
         println!("-------DOIN--------");
-        println!("[1]. Display Tasks");
-        println!("[2]. Create New Tasks");
-        println!("[3]. Delete Tasks");
-        println!("[4]. Edit Tasks");
-        println!("[-1]. Quit");
+        println!("[1]. Display Tasks.");
+        println!("[2]. Create New Tasks.");
+        println!("[3]. Delete Tasks.");
+        println!("[4]. Edit Tasks.");
+        println!("[5]. Save.");
+        println!("[-1]. Quit.");
         print!("> ");
         io::stdout().flush().unwrap();
         io::stdin()
@@ -46,16 +48,11 @@ fn main() -> Result<()> {
         };
 
         match choice {
-            1 => {
-                utils::display_task(&items);
-            },
-            2 => {
-                utils::create_task(&mut items);
-            },
-            3 => { 
-                utils::delete_task(&mut items);
-            },
+            1 => utils::display_task(&items),
+            2 => utils::create_task(&mut items),
+            3 => utils::delete_task(&mut items),
             4 => println!("Editing Tasks"),
+            5 => utils::save_task(&items, &args),
             _ => { 
                 println!("Goodbye!");
                 break;

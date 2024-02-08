@@ -1,12 +1,14 @@
 use crate::types;
+use std::fs;
+use std::fs::File;
 use std::io;
 use std::io::Write;
 
 pub fn display_task(items: &Vec<types::Item>) {
     println!("+---------------------------+");
     println!("|----------TASKS------------|");
-    for line in items {
-        println!("|[{}]. {}", line.id, line.content);
+    for item in items {
+        println!("|[{}]. {}", item.id, item.content);
     }
     println!("+---------------------------+");
 }
@@ -75,4 +77,38 @@ pub fn delete_task(items: &mut Vec<types::Item>) {
         }
     }
 
+}
+
+pub fn edit_task(items: &mut Vec<types::Item>) {
+
+}
+
+pub fn save_task(items: &Vec<types::Item>, args: &types::Cli) {
+    // let mut file = match File::open(&args.path) {
+    //     Err(why) => panic!("Error {}", why),
+    //     Ok(file) => file,
+    // };
+    let new_line = "\n";
+    // let mut file = fs::OpenOptions::new()
+    //     .append(true)
+    //     .create(true)
+    //     .open(&args.path)
+    //     .expect("Unable to Open File");
+    // let mut file = File::open(&args.path)
+    //     .expect("Unable to Open File");
+
+    // file.seek(io::SeekFrom::End(0))
+    //     .expect("Unable to Seek to End of File");
+
+    let mut content = String::new();
+    for item in items {
+        content += &item.content.clone();
+        content += new_line;
+        // let content = item.content.to_owned() + new_line;
+        // file.write_all(content.as_bytes())
+        //     .expect("Unable to write file");
+    }
+
+    fs::write(&args.path, &content)
+        .expect("Failed to Write");
 }

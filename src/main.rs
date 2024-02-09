@@ -1,13 +1,58 @@
-use anyhow::{Context, Result};
-use clap::Parser;
 use std::io;
 use std::io::Write;
+
+use anyhow::{Context, Result};
+use clap::Parser;
+use pancurses::{initscr, Input, noecho, endwin};
 
 pub mod utils;
 pub mod types;
 
 
 fn main() -> Result<()> {
+    let window = initscr();
+    window.printw("Type things, press delete to quit\n");
+    pancurses::set_title("DOIN");
+    window.refresh();
+    window.keypad(true);
+    noecho();
+    let mut input_str = String::new();
+    loop {
+        match window.getch() {
+            Some(Input::Character(c)) => { 
+                // window.addch(c);
+                window.insch(c);
+                window.mv(window.get_cur_y(), window.get_cur_x() + 1);
+                input_str.push(c);
+            },
+            Some(Input::KeyBackspace) => { 
+                if (input_str.len() == 0) || (window.get_cur_x() == 0) {
+                    window.refresh();
+                    continue;
+                }
+                window.mv(window.get_cur_y(), window.get_cur_x() - 1);
+                window.refresh();
+                window.delch();
+                let index: usize = (window.get_cur_x()).try_into().unwrap();
+                input_str.remove(index);
+            },
+            Some(Input::KeyLeft) => { 
+                window.mv(window.get_cur_y(), window.get_cur_x()-1);
+                window.refresh();
+                // window.delch();
+            },
+            Some(Input::KeyRight) => { 
+                if (window.get_cur_x()) < input_str.len().try_into().unwrap() {
+                    window.mv(window.get_cur_y(), window.get_cur_x()+1);
+                }
+                window.refresh();
+            },
+            Some(Input::KeyDC) => break,
+            Some(input) => { window.addstr(&format!("{:?}", input)); },
+            None => ()
+        }
+    }
+    endwin();
     let mut items: Vec<types::Item> = Vec::new();
     let args = types::Cli::parse();
 
@@ -26,13 +71,15 @@ fn main() -> Result<()> {
     }
     loop {
         let mut choice = String::new();
-        println!("-------DOIN--------");
-        println!("[1]. Display Tasks.");
-        println!("[2]. Create New Tasks.");
-        println!("[3]. Delete Tasks.");
-        println!("[4]. Edit Tasks.");
-        println!("[5]. Save.");
-        println!("[-1]. Quit.");
+        println!("+----------DOIN----------+");
+        println!("| [1]. Display Tasks.    |");
+        println!("| [2]. Create New Tasks. |");
+        println!("| [3]. Delete Tasks.     |");
+        println!("| [4]. Edit Tasks.       |");
+        println!("| [5]. Save.             |");
+        println!("| [-1]. Quit.            |");
+        println!("+------------------------+");
+
         print!("> ");
         io::stdout().flush().unwrap();
         io::stdin()

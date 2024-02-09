@@ -11,8 +11,16 @@ pub mod types;
 
 fn main() -> Result<()> {
     let window = initscr();
-    window.printw("Type things, press delete to quit\n");
-    pancurses::set_title("DOIN");
+    let def_x = window.get_max_x() / 4;
+    let def_y = window.get_max_y();
+    let label_x = def_x - 20;
+    // let label_y = def_y - 5;
+    window.mv(0, def_x * 2);
+    window.refresh();
+    window.printw("DOIN");
+    window.mv(1, label_x);
+    window.addstr("ENTER CHOICE: ");
+    window.mv(1, def_x);
     window.refresh();
     window.keypad(true);
     noecho();
@@ -20,39 +28,38 @@ fn main() -> Result<()> {
     loop {
         match window.getch() {
             Some(Input::Character(c)) => { 
-                // window.addch(c);
                 window.insch(c);
                 window.mv(window.get_cur_y(), window.get_cur_x() + 1);
                 input_str.push(c);
             },
             Some(Input::KeyBackspace) => { 
-                if (input_str.len() == 0) || (window.get_cur_x() == 0) {
-                    window.refresh();
+                if (input_str.len() == 0) || (window.get_cur_x() == def_x) {
                     continue;
                 }
                 window.mv(window.get_cur_y(), window.get_cur_x() - 1);
-                window.refresh();
                 window.delch();
-                let index: usize = (window.get_cur_x()).try_into().unwrap();
+                let index: usize = (window.get_cur_x() - def_x).try_into().unwrap();
                 input_str.remove(index);
             },
             Some(Input::KeyLeft) => { 
                 window.mv(window.get_cur_y(), window.get_cur_x()-1);
-                window.refresh();
-                // window.delch();
             },
             Some(Input::KeyRight) => { 
                 if (window.get_cur_x()) < input_str.len().try_into().unwrap() {
                     window.mv(window.get_cur_y(), window.get_cur_x()+1);
                 }
-                window.refresh();
             },
+            // Some(Input::KeyEnter) => { 
+            //     break;
+            // },
             Some(Input::KeyDC) => break,
             Some(input) => { window.addstr(&format!("{:?}", input)); },
             None => ()
         }
+        window.refresh();
     }
     endwin();
+    println!("{}", input_str);
     let mut items: Vec<types::Item> = Vec::new();
     let args = types::Cli::parse();
 

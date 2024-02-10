@@ -15,12 +15,28 @@ fn main() -> Result<()> {
     let def_y = window.get_max_y();
     let label_x = def_x - 20;
     // let label_y = def_y - 5;
-    window.mv(0, def_x * 2);
+    window.mv(0, def_x*2-10);
     window.refresh();
-    window.printw("DOIN");
-    window.mv(1, label_x);
+    window.printw("+----------DOIN----------+");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("| [1]. Display Tasks.    |");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("| [2]. Create New Tasks. |");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("| [3]. Delete Tasks.     |");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("| [4]. Edit Tasks.       |");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("| [5]. Save.             |");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("| [-1]. Quit.            |");
+    window.mv(window.get_cur_y()+1, def_x*2 - 10);
+    window.addstr("+------------------------+");
+    window.mv(window.get_cur_y()+1, label_x);
+
+    window.refresh();
     window.addstr("ENTER CHOICE: ");
-    window.mv(1, def_x);
+    window.mv(window.get_cur_y(), def_x);
     window.refresh();
     window.keypad(true);
     noecho();
@@ -42,19 +58,25 @@ fn main() -> Result<()> {
                 input_str.remove(index);
             },
             Some(Input::KeyLeft) => { 
-                window.mv(window.get_cur_y(), window.get_cur_x()-1);
+                let index: usize = (window.get_cur_x() - def_x).try_into().unwrap();
+                if index >= 1 {
+                    window.mv(window.get_cur_y(), window.get_cur_x() - 1);
+                } 
             },
             Some(Input::KeyRight) => { 
-                if (window.get_cur_x()) < input_str.len().try_into().unwrap() {
-                    window.mv(window.get_cur_y(), window.get_cur_x()+1);
+                let index: usize = (window.get_cur_x() - def_x).try_into().unwrap();
+                if index < input_str.len().try_into().unwrap() {
+                    window.mv(window.get_cur_y(), window.get_cur_x() + 1);
                 }
             },
-            // Some(Input::KeyEnter) => { 
-            //     break;
-            // },
+            Some(Input::KeyUp) => { 
+                window.mv(window.get_cur_y() - 1, window.get_cur_x());
+            },
+            Some(Input::KeyDown) => { 
+                window.mv(window.get_cur_y() + 1, window.get_cur_x());
+            },
             Some(Input::KeyDC) => break,
-            Some(input) => { window.addstr(&format!("{:?}", input)); },
-            None => ()
+            _ => (),
         }
         window.refresh();
     }

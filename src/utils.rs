@@ -1,8 +1,12 @@
 use crate::types;
 use std::fs;
-use std::fs::File;
 use std::io;
 use std::io::Write;
+
+struct MenuItem {
+    label: String,
+    action: fn()
+}
 
 pub fn display_task(items: &Vec<types::Item>) {
     println!("+---------------------------+");

@@ -1,10 +1,25 @@
+use std::io::{self, stdout};
+use std::rc::Rc;
+
 use anyhow::{Context, Result};
 use clap::Parser;
-use pancurses::*;
 
-pub mod utils;
+use crossterm::{
+    event::{self, Event, KeyCode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+
+use ratatui::{prelude::*, widgets::*};
+
+use std::any::type_name;
+
 pub mod types;
+pub mod utils;
 
+fn type_of<T>(_: &T) -> &'static str {
+    type_name::<T>()
+}
 
 fn get_items(path: &std::path::PathBuf) -> Result<Vec<types::Item>, anyhow::Error> {
     let mut items: Vec<types::Item> = Vec::new();
@@ -27,73 +42,154 @@ fn get_items(path: &std::path::PathBuf) -> Result<Vec<types::Item>, anyhow::Erro
 
 fn main() -> Result<()> {
     let args = types::Cli::parse();
-    let mut items = get_items(&args.path)?;
+    let mut _items = get_items(&args.path)?;
+    enable_raw_mode()?;
+    stdout().execute(EnterAlternateScreen)?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
-    let window = initscr();
-    let def_x = window.get_max_x() / 4;
-    let _def_y = window.get_max_y();
-    let _label_x = def_x - 20;
-    // let label_y = def_y - 5;
-    window.mv(0, def_x*2-10);
-    window.refresh();
-    let menu = vec![
-        types::MenuItem {label: "[1]. Display Tasks.".to_string(), action: || println!("Displaying Tasks") },
-        types::MenuItem {label: "[2]. Create New Tasks.".to_string(), action: || println!("Creating New Tasks") },
-        types::MenuItem {label: "[3]. Delete Tasks.".to_string(), action: || println!("Deleting Tasks") },
-        types::MenuItem {label: "[4]. Edit Tasks.".to_string(), action: || println!("Editing Tasks") },
-        types::MenuItem {label: "[5]. Save.".to_string(), action: || println!("Saving Tasks") },
-        types::MenuItem {label: "[-1]. Quit.".to_string(), action: || println!("Goodbye!") },
-    ];
-
-    let mut selected = 0;
-
-
-    loop {
-        // window.clear();
-        window.mvprintw(0,0, "DOIN");
-        for (i, item) in menu.iter().enumerate() {
-            window.mvprintw(i as i32 + 2, 0, &item.label);
-            if i == selected {
-                window.attron(A_BOLD);
-                window.mvprintw(i as i32 + 2, 0, &item.label);
-                window.attroff(A_BOLD);
-            }
-
-        }
-
-        window.mv(2, 0);
-        window.refresh();
-        window.keypad(true);
-        noecho();
-        match window.getch() {
-            Some(Input::KeyUp) => selected = (selected + menu.len() - 1) % menu.len(),
-            Some(Input::KeyDown) => selected = (selected + 1) % menu.len(),
-            Some(Input::KeyDC) => break,
-            Some(Input::Character(c)) => {
-                if c !=  '\n'{
-                    continue;
-                }
-                (menu[selected].action)(); 
-                match selected {
-                    0 => utils::display_task(&items),
-                    1 => utils::create_task(&mut items),
-                    2 => utils::delete_task(&mut items),
-                    3 => println!("Editing Tasks"),
-                    4 => utils::save_task(&items, &args),
-                    _ => break,
-                }
-                match window.getch() {
-                    _ => {
-                        window.clear();
-                        window.refresh();
-                    }
-                }
-            },
-            _ => {}
-        }
-
+    let mut quit = false;
+    while !quit {
+        terminal.draw(ui)?;
+        quit = handle_event()?;
     }
-    endwin();
+
+    disable_raw_mode()?;
+    stdout().execute(LeaveAlternateScreen)?;
     Ok(())
 }
 
+fn handle_event() -> io::Result<bool> {
+    if event::poll(std::time::Duration::from_millis(50))? {
+        if let Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+fn render_task(frame: &mut Frame, area: Rect) -> io::Result<()> {
+    let task_layout = Layout::new(
+        Direction::Horizontal,
+        [Constraint::Percentage(80), Constraint::Percentage(20)],
+        )
+        .split(area);
+    let tasks = vec![
+        Line::from("Writing CLI Tools"),
+        Line::from("Reading Philosophy Books"),
+        Line::from("Do Bed"),
+    ];
+
+    let par = Paragraph::new(tasks)
+        .block(
+            Block::new()
+                .title("Tasks".italic().green())
+                .borders(Borders::RIGHT | Borders::LEFT | Borders::BOTTOM),
+        )
+        .style(Style::new().on_black());
+    let des = Block::default()
+        .title("description".italic().green())
+        .borders(Borders::RIGHT | Borders::LEFT | Borders::BOTTOM)
+        .on_black();
+
+
+    frame.render_widget(par, task_layout[0]);
+    frame.render_widget(des, task_layout[1]);
+    Ok(())
+}
+
+// fn render_des(frame: &mut Frame, area: Rect) -> io::Result<()> {
+//     let des = block::default()
+//         .title("description".italic().green())
+//         .borders(borders::right | borders::left | borders::bottom)
+//         .on_black();
+//     frame.render_widget(des, area);
+//     Ok(())
+// }
+
+fn render_option(frame: &mut Frame, area: Rect) -> io::Result<()> {
+    let option_layout = Layout::new(
+        Direction::Horizontal,
+        [
+            // Quit
+            Constraint::Min(1),
+            Constraint::Min(1),
+            // Up
+            Constraint::Min(1),
+            Constraint::Min(1),
+            // Down
+            Constraint::Min(1),
+            Constraint::Min(1),
+            // Add
+            Constraint::Min(1),
+            Constraint::Min(1),
+            // Edit
+            Constraint::Min(1),
+            Constraint::Min(1),
+            // Delete
+            Constraint::Min(1),
+            Constraint::Min(1),
+        ],
+    )
+    .split(area);
+
+    let options = [
+        ("Q/ESC", "Quit"),
+        ("↑", "Up"),
+        ("↓", "Down"),
+        ("A/a", "Add Task"),
+        ("E/e", "Edit Task"),
+        ("D/d", "Delete Task"),
+    ];
+    let mut index = 0;
+    for (label, info) in options {
+        let btn = Block::default()
+            .title(label)
+            .title_alignment(Alignment::Center)
+            .padding(Padding::horizontal(1))
+            .black()
+            .on_gray();
+        let des = Block::default()
+            .title(info)
+            .title_alignment(Alignment::Center)
+            .padding(Padding::horizontal(1))
+            .on_black();
+        frame.render_widget(btn, option_layout[index]);
+        index += 1;
+        frame.render_widget(des, option_layout[index]);
+        index += 1;
+    }
+
+    Ok(())
+}
+
+fn render_main(frame: &mut Frame) -> Rc<[Rect]>{
+    let main_layout = Layout::new(
+        Direction::Vertical,
+        [
+            Constraint::Length(1),
+            Constraint::Min(0),
+            Constraint::Length(1),
+        ],
+    )
+    .split(frame.size());
+    frame.render_widget(
+        Block::default()
+            .title("DOIN".bold().cyan())
+            .borders(Borders::ALL)
+            .padding(Padding::new(40, 40, 20, 20))
+            .on_black(),
+        main_layout[0],
+    );
+    main_layout
+} 
+
+fn ui(frame: &mut Frame) {
+    // Initialize
+    let main_layout = render_main(frame);
+    // Render Inner Layout
+    let _ = render_task(frame, main_layout[1]);
+    let _ = render_option(frame, main_layout[2]);
+}

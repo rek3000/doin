@@ -26,8 +26,8 @@ impl App {
         let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
         let mut quit = false;
+        let args = types::Cli::parse();
         while !quit {
-            let args = types::Cli::parse();
             self.items = self.get_items(&args.path).unwrap();
             terminal.draw(|frame| self.ui(frame))?;
             quit = self.handle_event()?;
@@ -44,9 +44,10 @@ impl App {
 
         let mut index = 0;
         for line in content.lines() {
-            let item = types::Item {
+            let item: types::Item = types::Item {
                 id: index,
-                content: String::from(line),
+                title: String::from(line),
+                content: String::from(""),
             };
             items.push(item);
             index += 1;
@@ -89,16 +90,16 @@ impl App {
         for item in &self.items {
             if self.task_selected == item.id {
                 tasks.push(Line::from(
-                    Span::from(item.content.clone()).style(Style::new().black().on_gray()),
+                    Span::from(item.title.clone()).style(Style::new().black().on_gray()),
                 ));
             } else {
-                tasks.push(Line::from(item.content.clone()));
+                tasks.push(Line::from(item.title.clone()));
             }
         }
 
         let task_layout = Layout::new(
             Direction::Horizontal,
-            [Constraint::Percentage(80), Constraint::Percentage(20)],
+            [Constraint::Percentage(60), Constraint::Percentage(40)],
         )
         .split(area);
 

@@ -11,6 +11,7 @@ use std::any::type_name;
 pub mod app;
 pub mod types;
 pub mod utils;
+pub mod task;
 
 fn _type_of<T>(_: &T) -> &'static str {
     type_name::<T>()

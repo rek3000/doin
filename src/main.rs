@@ -12,7 +12,7 @@ pub mod app;
 pub mod types;
 pub mod utils;
 
-fn type_of<T>(_: &T) -> &'static str {
+fn _type_of<T>(_: &T) -> &'static str {
     type_name::<T>()
 }
 

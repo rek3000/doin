@@ -11,9 +11,30 @@ use crate::types;
 
 pub struct App {
     task_selected: i32,
+    items: Vec<types::Item>,
 }
 
 impl App {
+    pub fn new() -> App {
+        App {
+            task_selected: 0,
+            items: vec![],
+        }
+    }
+
+    pub fn run(&mut self) -> io::Result<()> {
+        let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+
+        let mut quit = false;
+        while !quit {
+            let args = types::Cli::parse();
+            self.items = self.get_items(&args.path).unwrap();
+            terminal.draw(|frame| self.ui(frame))?;
+            quit = self.handle_event()?;
+        }
+        Ok(())
+    }
+
     fn get_items(&self, path: &std::path::PathBuf) -> Result<Vec<types::Item>, anyhow::Error> {
         let mut items: Vec<types::Item> = Vec::new();
 
@@ -32,26 +53,21 @@ impl App {
         }
         return Ok(items);
     }
-    pub fn new() -> App {
-        App { task_selected: 0 }
-    }
 
-    pub fn run(&self) -> io::Result<()> {
-        let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-
-        let mut quit = false;
-        while !quit {
-            terminal.draw(|frame| self.ui(frame))?;
-            quit = self.handle_event()?;
-        }
-        Ok(())
-    }
-
-    fn handle_event(&self) -> io::Result<bool> {
+    fn handle_event(&mut self) -> io::Result<bool> {
         if event::poll(std::time::Duration::from_millis(50))? {
             if let Event::Key(key) = event::read()? {
                 if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
                     return Ok(true);
+                } else if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Up {
+                    if self.task_selected != 0 {
+                        self.task_selected -= 1;
+                    }
+                } else if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Down {
+                    if self.task_selected == (self.items.len() - 1).try_into().unwrap() {
+                    } else {
+                        self.task_selected += 1;
+                    }
                 }
             }
         }
@@ -68,16 +84,15 @@ impl App {
     }
 
     fn render_task(&self, frame: &mut Frame, area: Rect) -> io::Result<()> {
-        let args = types::Cli::parse();
-        let items: Vec<types::Item> = self.get_items(&args.path).unwrap();
         let mut tasks: Vec<Line> = vec![];
-        for item in items {
+        // for item in self.items {
+        for item in &self.items {
             if self.task_selected == item.id {
                 tasks.push(Line::from(
-                    Span::from(item.content).style(Style::new().black().on_gray()),
+                    Span::from(item.content.clone()).style(Style::new().black().on_gray()),
                 ));
             } else {
-                tasks.push(Line::from(item.content));
+                tasks.push(Line::from(item.content.clone()));
             }
         }
 
@@ -105,31 +120,6 @@ impl App {
     }
 
     fn render_option(&self, frame: &mut Frame, area: Rect) -> io::Result<()> {
-        let option_layout = Layout::new(
-            Direction::Horizontal,
-            [
-                // Quit
-                Constraint::Min(1),
-                Constraint::Min(1),
-                // Up
-                Constraint::Min(1),
-                Constraint::Min(1),
-                // Down
-                Constraint::Min(1),
-                Constraint::Min(1),
-                // Add
-                Constraint::Min(1),
-                Constraint::Min(1),
-                // Edit
-                Constraint::Min(1),
-                Constraint::Min(1),
-                // Delete
-                Constraint::Min(1),
-                Constraint::Min(1),
-            ],
-        )
-        .split(area);
-
         let options = [
             ("Q/ESC", "Quit"),
             ("↑", "Up"),
@@ -138,6 +128,15 @@ impl App {
             ("E/e", "Edit Task"),
             ("D/d", "Delete Task"),
         ];
+
+        let option_layout = Layout::new(
+            Direction::Horizontal,
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+                .iter()
+                .map(|&c| Constraint::Min(c)),
+        )
+        .split(area);
+
         let mut index = 0;
         for (label, info) in options {
             let btn = Block::default()

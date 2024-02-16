@@ -6,8 +6,6 @@ use std::hash::{Hash, Hasher};
 #[derive(Parser)]
 pub struct Cli {
     pub path: std::path::PathBuf,
-    // // #[command(flatten)]
-    // pub verbose: clap_verbosity_flag::Verbosity,
 }
 
 
@@ -21,4 +19,20 @@ pub struct Item {
 pub struct MenuItem {
     pub label: String,
     pub action: fn()
+}
+
+#[derive(Default, PartialEq)]
+pub enum RunningState {
+    #[default]
+    Running,
+    Done,
+}
+
+pub enum Message {
+    MoveUp,
+    MoveDown,
+    Add,
+    Edit,
+    Delete,
+    Quit,
 }

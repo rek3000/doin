@@ -39,18 +39,21 @@ impl App {
         let mut items: Vec<types::Item> = Vec::new();
 
         // Read file to String
-        let content = std::fs::read_to_string(path)
+        let data = std::fs::read_to_string(path)
             .with_context(|| format!("Could not read file `{}`", path.display()))?;
+        let data_items = json::parse(&data);
+        // println!("{}", data_items);
 
-        let mut index = 0;
-        for line in content.lines() {
+        // let mut index = 0;
+        // for line in content.lines() {
+        for data_item in data_items.unwrap().members() {
+            // println!("{:?}", data_item);
             let item: types::Item = types::Item {
-                id: index,
-                title: String::from(line),
-                content: String::from(""),
+                id: data_item["id"].as_usize().unwrap(),
+                title: data_item["title"].as_str().unwrap().to_string(),
+                content: data_item["content"].as_str().unwrap().to_string(),
             };
             items.push(item);
-            index += 1;
         }
         return Ok(items);
     }
@@ -61,11 +64,19 @@ impl App {
                 if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
                     return Ok(true);
                 } else if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Up {
+                    if self.items.len() == 0 {
+                        return Ok(false);
+                    }
+
                     if self.task_selected != 0 {
                         self.task_selected -= 1;
                     }
                 } else if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Down {
-                    if self.task_selected == (self.items.len() - 1).try_into().unwrap() {
+                    if self.items.len() == 0 {
+                        return Ok(false);
+                    }
+
+                    if self.task_selected == (self.items.len() - 1) {
                     } else {
                         self.task_selected += 1;
                     }
@@ -96,6 +107,8 @@ impl App {
             }
         }
 
+        let des_text = Line::from((&self.items[self.task_selected].content).clone());
+
         let task_layout = Layout::new(
             Direction::Horizontal,
             [Constraint::Percentage(60), Constraint::Percentage(40)],
@@ -109,13 +122,16 @@ impl App {
         let par = Paragraph::new(tasks)
             .block(par_block.clone())
             .style(Style::new().on_black());
-        let des = Block::default()
+        let des_block = Block::default()
             .title("Description".italic().green())
             .borders(Borders::ALL)
             .on_black();
+        let des = Paragraph::new(des_text)
+            .block(des_block.clone())
+            .style(Style::new().on_black());
 
         let task_area = par_block.inner(task_layout[0]);
-        let des_area = des.inner(task_layout[1]);
+        let des_area = des_block.inner(task_layout[1]);
         frame.render_widget(par, task_area);
         frame.render_widget(des, des_area);
         Ok(())
@@ -169,10 +185,7 @@ impl App {
         let main_area = frame.size();
         let main_layout = Layout::new(
             Direction::Vertical,
-            [
-                Constraint::Min(0),
-                Constraint::Length(1),
-            ],
+            [Constraint::Min(0), Constraint::Length(1)],
         )
         .split(main_area);
         frame.render_widget(main_block, main_layout[0]);

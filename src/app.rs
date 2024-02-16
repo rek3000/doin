@@ -10,7 +10,7 @@ use ratatui::{prelude::*, widgets::*};
 use crate::types;
 
 pub struct App {
-    task_selected: i32,
+    task_selected: usize,
     items: Vec<types::Item>,
 }
 
@@ -80,13 +80,12 @@ impl App {
         // Initialize
         let main_layout = self.render_main(frame);
         // Render Inner Layout
-        let _ = self.render_task(frame, main_layout[1]);
-        let _ = self.render_option(frame, main_layout[2]);
+        let _ = self.render_task(frame, main_layout[0]);
+        let _ = self.render_option(frame, main_layout[1]);
     }
 
     fn render_task(&self, frame: &mut Frame, area: Rect) -> io::Result<()> {
         let mut tasks: Vec<Line> = vec![];
-        // for item in self.items {
         for item in &self.items {
             if self.task_selected == item.id {
                 tasks.push(Line::from(
@@ -101,22 +100,24 @@ impl App {
             Direction::Horizontal,
             [Constraint::Percentage(60), Constraint::Percentage(40)],
         )
+        .horizontal_margin(1)
         .split(area);
 
+        let par_block = Block::new()
+            .title("Tasks".italic().green())
+            .borders(Borders::ALL);
         let par = Paragraph::new(tasks)
-            .block(
-                Block::new()
-                    .title("Tasks".italic().green())
-                    .borders(Borders::RIGHT | Borders::LEFT | Borders::BOTTOM),
-            )
+            .block(par_block.clone())
             .style(Style::new().on_black());
         let des = Block::default()
             .title("Description".italic().green())
-            .borders(Borders::RIGHT | Borders::LEFT | Borders::BOTTOM)
+            .borders(Borders::ALL)
             .on_black();
 
-        frame.render_widget(par, task_layout[0]);
-        frame.render_widget(des, task_layout[1]);
+        let task_area = par_block.inner(task_layout[0]);
+        let des_area = des.inner(task_layout[1]);
+        frame.render_widget(par, task_area);
+        frame.render_widget(des, des_area);
         Ok(())
     }
 
@@ -136,6 +137,7 @@ impl App {
                 .iter()
                 .map(|&c| Constraint::Min(c)),
         )
+        .horizontal_margin(0)
         .split(area);
 
         let mut index = 0;
@@ -143,13 +145,12 @@ impl App {
             let btn = Block::default()
                 .title(label)
                 .title_alignment(Alignment::Center)
-                .padding(Padding::horizontal(1))
                 .black()
                 .on_gray();
             let des = Block::default()
                 .title(info)
                 .title_alignment(Alignment::Center)
-                .padding(Padding::horizontal(1))
+                .gray()
                 .on_black();
             frame.render_widget(btn, option_layout[index]);
             index += 1;
@@ -161,23 +162,20 @@ impl App {
     }
 
     fn render_main(&self, frame: &mut Frame) -> Rc<[Rect]> {
+        let main_block = Block::default()
+            .title("DOIN".bold().cyan())
+            .borders(Borders::ALL)
+            .on_black();
+        let main_area = frame.size();
         let main_layout = Layout::new(
             Direction::Vertical,
             [
-                Constraint::Length(1),
                 Constraint::Min(0),
                 Constraint::Length(1),
             ],
         )
-        .split(frame.size());
-        frame.render_widget(
-            Block::default()
-                .title("DOIN".bold().cyan())
-                .borders(Borders::ALL)
-                .padding(Padding::new(40, 40, 20, 20))
-                .on_black(),
-            main_layout[0],
-        );
+        .split(main_area);
+        frame.render_widget(main_block, main_layout[0]);
         main_layout
     }
 }

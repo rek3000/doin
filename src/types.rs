@@ -9,7 +9,7 @@ pub struct Cli {
 }
 
 pub struct Item {
-    pub id: i32,
+    pub id: usize,
     pub title: String,
     pub content: String,
 }

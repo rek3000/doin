@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::io;
 use std::io::stdout;
 use std::rc::Rc;
@@ -18,7 +19,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new() -> Self {
         App {
             task_selected: 0,
             items: vec![],
@@ -32,12 +33,13 @@ impl App {
         let args = Cli::parse();
         while self.state != RunningState::Done {
             self.items = self.get_items(&args.path).unwrap();
-            terminal.draw(|frame| self.ui(frame))?;
-            let mut cur_msg = self.handle_event().unwrap();
-            while cur_msg.is_some() {
-                cur_msg = self.update(cur_msg.unwrap());
-
-            }
+            terminal.draw(|frame| {
+                self.ui(frame);
+                let mut cur_msg = self.handle_event().unwrap();
+                while cur_msg.is_some() {
+                    cur_msg = self.update(frame, cur_msg.unwrap());
+                }
+            })?;
         }
         Ok(())
     }
@@ -81,10 +83,14 @@ impl App {
         }
     }
 
-    fn update(&mut self, msg: Message) -> Option<Message> {
+    fn update(&mut self, frame: &mut Frame, msg: Message) -> Option<Message> {
         match msg {
-            Message::Add => {}
-            Message::Edit => {}
+            Message::Add => {
+                // self.add(frame);
+            }
+            Message::Edit => {
+                // self.edit(frame);
+            }
             Message::MoveUp => {
                 if (self.items.len() != 0) && self.task_selected != 0 {
                     self.task_selected -= 1;
@@ -95,7 +101,9 @@ impl App {
                     self.task_selected += 1;
                 }
             }
-            Message::Delete => {}
+            Message::Delete => {
+                // self.delete();
+            }
             Message::Quit => {
                 self.state = RunningState::Done;
             }
@@ -162,33 +170,18 @@ impl App {
             ("D/d", "Delete Task"),
         ];
 
-        let option_layout = Layout::new(
-            Direction::Horizontal,
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-                .iter()
-                .map(|&c| Constraint::Min(c)),
-        )
-        .horizontal_margin(0)
-        .split(area);
+        let spans = options
+            .iter()
+            .flat_map(|(key, desc)| {
+                let key = Span::styled(format!(" {} ", key), Style::new().black().on_gray());
+                let desc = Span::styled(format!(" {} ", desc), Style::new().gray().on_black());
 
-        let mut index = 0;
-        for (label, info) in options {
-            let btn = Block::default()
-                .title(label)
-                .title_alignment(Alignment::Center)
-                .black()
-                .on_gray();
-            let des = Block::default()
-                .title(info)
-                .title_alignment(Alignment::Center)
-                .gray()
-                .on_black();
-            frame.render_widget(btn, option_layout[index]);
-            index += 1;
-            frame.render_widget(des, option_layout[index]);
-            index += 1;
-        }
-
+                [key, desc]
+            })
+            .collect_vec();
+   
+        let line = Line::from(spans).centered();
+        frame.render_widget(line, area);
         Ok(())
     }
 
@@ -207,7 +200,7 @@ impl App {
         main_layout
     }
 
-    fn create(&self, frame: &mut Frame, area: Rect) {
+    fn add(&self, frame: &mut Frame, area: Rect) {
         let popup = Block::default().title("Add Task");
         let popup_area = frame.size();
     }

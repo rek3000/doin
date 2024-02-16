@@ -643,6 +643,7 @@ dependencies = [
  "crossterm",
  "env_logger",
  "indicatif",
+ "itertools",
  "json",
  "log",
  "ratatui",

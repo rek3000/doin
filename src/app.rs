@@ -35,11 +35,12 @@ impl App {
             self.items = self.get_items(&args.path).unwrap();
             terminal.draw(|frame| {
                 self.ui(frame);
-                let mut cur_msg = self.handle_event().unwrap();
-                while cur_msg.is_some() {
-                    cur_msg = self.update(frame, cur_msg.unwrap());
-                }
             })?;
+
+            let mut cur_msg = self.handle_event().unwrap();
+            while cur_msg.is_some() {
+                cur_msg = self.update(cur_msg.unwrap());
+            }
         }
         Ok(())
     }
@@ -83,7 +84,7 @@ impl App {
         }
     }
 
-    fn update(&mut self, frame: &mut Frame, msg: Message) -> Option<Message> {
+    fn update(&mut self, msg: Message) -> Option<Message> {
         match msg {
             Message::Add => {
                 // self.add(frame);
@@ -110,6 +111,7 @@ impl App {
         };
         None
     }
+
     fn ui(&self, frame: &mut Frame) {
         // Initialize
         let main_layout = self.render_main(frame);
@@ -179,7 +181,7 @@ impl App {
                 [key, desc]
             })
             .collect_vec();
-   
+
         let line = Line::from(spans).centered();
         frame.render_widget(line, area);
         Ok(())

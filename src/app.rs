@@ -33,15 +33,21 @@ impl App {
         let args = Cli::parse();
         while self.state != RunningState::Done {
             self.items = self.get_items(&args.path).unwrap();
-            terminal.draw(|frame| {
-                self.ui(frame);
-            })?;
-
+            let _ = self.draw(&mut terminal);
             let mut cur_msg = self.handle_event().unwrap();
             while cur_msg.is_some() {
                 cur_msg = self.update(cur_msg.unwrap());
             }
         }
+        Ok(())
+    }
+
+    fn draw(&self, terminal: &mut Terminal<impl Backend>) -> Result<()> {
+            terminal.draw(|frame| {
+                // self.ui(frame);
+                frame.render_widget(self, frame.size());
+            })?;
+
         Ok(())
     }
 
@@ -112,15 +118,7 @@ impl App {
         None
     }
 
-    fn ui(&self, frame: &mut Frame) {
-        // Initialize
-        let main_layout = self.render_main(frame);
-        // Render Inner Layout
-        let _ = self.render_task(frame, main_layout[0]);
-        let _ = self.render_option(frame, main_layout[1]);
-    }
-
-    fn render_task(&self, frame: &mut Frame, area: Rect) -> io::Result<()> {
+    fn render_task(&self, area: Rect, buf: &mut Buffer) -> io::Result<()> {
         let mut tasks: Vec<Line> = vec![];
         for item in &self.items {
             if self.task_selected == item.id {
@@ -157,12 +155,12 @@ impl App {
 
         let task_area = par_block.inner(task_layout[0]);
         let des_area = des_block.inner(task_layout[1]);
-        frame.render_widget(par, task_area);
-        frame.render_widget(des, des_area);
+        par.render(task_area, buf);
+        des.render(des_area, buf);
         Ok(())
     }
 
-    fn render_option(&self, frame: &mut Frame, area: Rect) -> io::Result<()> {
+    fn render_option(&self, area: Rect, buf: &mut Buffer) -> io::Result<()> {
         let options = [
             ("Q/ESC", "Quit"),
             ("↑", "Up"),
@@ -183,23 +181,8 @@ impl App {
             .collect_vec();
 
         let line = Line::from(spans).centered();
-        frame.render_widget(line, area);
+        line.render(area, buf);
         Ok(())
-    }
-
-    fn render_main(&self, frame: &mut Frame) -> Rc<[Rect]> {
-        let main_block = Block::default()
-            .title("DOIN - Slow Task Management App".bold().cyan())
-            .borders(Borders::ALL)
-            .on_black();
-        let main_area = frame.size();
-        let main_layout = Layout::new(
-            Direction::Vertical,
-            [Constraint::Min(0), Constraint::Length(1)],
-        )
-        .split(main_area);
-        frame.render_widget(main_block, main_layout[0]);
-        main_layout
     }
 
     fn add(&self, frame: &mut Frame, area: Rect) {
@@ -209,4 +192,23 @@ impl App {
     fn edit(&self, frame: &mut Frame, area: Rect) {}
     fn delete(&self, frame: &mut Frame, area: Rect) {}
     fn save(&self, frame: &mut Frame, area: Rect) {}
+}
+
+impl Widget for &App {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let main_block = Block::default()
+            .title("DOIN - Slow Task Management App".bold().cyan())
+            .borders(Borders::ALL)
+            .on_black();
+        let main_layout = Layout::new(
+            Direction::Vertical,
+            [Constraint::Min(0), Constraint::Length(1)],
+        )
+        .split(area);
+
+        main_block.render(main_layout[0], buf);
+        // Render Inner Layout
+        let _ = self.render_task(main_layout[0], buf);
+        let _ = self.render_option(main_layout[1], buf);
+    }
 }

@@ -1,0 +1,17 @@
+[
+  {
+    "id": 0,
+    "title": "Make CLI Tool",
+    "content": "Make a CLI Tool that manage daily tasks!"
+  },
+  {
+    "id": 1,
+    "title": "Read Book",
+    "content": "Read 5 pages each day."
+  },
+  {
+    "id": 2,
+    "title": "Work out",
+    "content": "Try to do 4 work out per week."
+  }
+]

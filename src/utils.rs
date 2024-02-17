@@ -3,20 +3,6 @@ use std::fs;
 use std::io;
 use std::io::Write;
 
-struct MenuItem {
-    label: String,
-    action: fn()
-}
-
-pub fn display_task(items: &Vec<types::Item>) {
-    println!("+---------------------------+");
-    println!("|----------TASKS------------|");
-    for item in items {
-        println!("| {}. {}", item.id, item.content);
-    }
-    println!("+---------------------------+");
-}
-
 pub fn create_task(items: &mut Vec<types::Item>) {
     let mut input = String::new();
     loop {
@@ -45,6 +31,7 @@ pub fn create_task(items: &mut Vec<types::Item>) {
             let content = String::from(content.trim());
             let item = types::Item {
                 id: items[items.len() -1].id + 1,
+                title: content.clone(),
                 content,
             };
 

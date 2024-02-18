@@ -184,14 +184,6 @@ impl App {
         Ok(())
     }
 
-    fn add(&self, frame: &mut Frame, area: Rect) {
-        let popup = Block::default().title("Add Task");
-        let popup_area = frame.size();
-    }
-    fn edit(&self, frame: &mut Frame, area: Rect) {}
-    fn delete(&self, frame: &mut Frame, area: Rect) {}
-    fn save(&self, frame: &mut Frame, area: Rect) {}
-
     fn centered_rect(&self, percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
         // Cut the given rectangle into three vertical pieces
         let popup_layout = Layout::default()
@@ -232,22 +224,37 @@ impl Widget for &App {
         let _ = self.render_task(main_layout[0], buf);
         let _ = self.render_option(main_layout[1], buf);
 
-        // if let Message::Add = self.message {
-        // }
         match self.message {
             Message::Add => {
+                let popup_area = self.centered_rect(area.width - 20, area.height, area);
+                let add_layout = Layout::new(
+                    Direction::Vertical,
+                    [Constraint::Percentage(30), Constraint::Percentage(70)],
+                )
+                .split(popup_area);
                 let popup = Block::default()
-                    .title("Add a Task")
+                    .title("Add a Task".red())
                     .borders(Borders::ALL)
                     .style(Style::new().black().on_gray());
 
-                let popup_area = self.centered_rect(60, 25, area);
                 Clear.render(popup_area, buf);
+                let add_title = Block::default()
+                    .title("Title")
+                    .borders(Borders::ALL)
+                    .style(Style::new().black().on_gray());
+                let add_desc = Block::default()
+                    .title("Description")
+                    .borders(Borders::ALL)
+                    .style(Style::new().black().on_gray());
+                let add_title_area = add_title.inner(add_layout[0]);
+                let add_desc_area = add_desc.inner(add_layout[1]);
                 popup.render(popup_area, buf);
-            },
-            Message::Edit => {},
-            Message::Delete => {},
-            _ => {},
+                add_title.render(add_title_area, buf);
+                add_desc.render(add_desc_area, buf);
+            }
+            Message::Edit => {}
+            Message::Delete => {}
+            _ => {}
         }
     }
 }

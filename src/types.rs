@@ -28,7 +28,10 @@ pub enum RunningState {
     Done,
 }
 
+#[derive(Default, PartialEq)]
 pub enum Message {
+    #[default]
+    None,
     MoveUp,
     MoveDown,
     Add,

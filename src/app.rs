@@ -14,8 +14,8 @@ use crate::types::*;
 pub struct App {
     task_selected: usize,
     items: Vec<Item>,
-    // quit: bool,
     state: RunningState,
+    message: Message,
 }
 
 impl App {
@@ -24,6 +24,7 @@ impl App {
             task_selected: 0,
             items: vec![],
             state: RunningState::Running,
+            message: Message::None,
         }
     }
 
@@ -32,26 +33,23 @@ impl App {
 
         let args = Cli::parse();
         while self.state != RunningState::Done {
-            self.items = self.get_items(&args.path).unwrap();
+            let _ = self.get_items(&args.path).unwrap();
             let _ = self.draw(&mut terminal);
-            let mut cur_msg = self.handle_event().unwrap();
-            while cur_msg.is_some() {
-                cur_msg = self.update(cur_msg.unwrap());
-            }
+            let _ = self.handle_event();
+            let _ = self.update();
         }
         Ok(())
     }
 
     fn draw(&self, terminal: &mut Terminal<impl Backend>) -> Result<()> {
-            terminal.draw(|frame| {
-                // self.ui(frame);
-                frame.render_widget(self, frame.size());
-            })?;
+        terminal.draw(|frame| {
+            frame.render_widget(self, frame.size());
+        })?;
 
         Ok(())
     }
 
-    fn get_items(&self, path: &std::path::PathBuf) -> Result<Vec<Item>, anyhow::Error> {
+    fn get_items(&mut self, path: &std::path::PathBuf) -> Result<()> {
         let mut items: Vec<Item> = Vec::new();
 
         // Read file to String
@@ -66,12 +64,16 @@ impl App {
             };
             items.push(item);
         }
-        return Ok(items);
+
+        self.items = items;
+        Ok(())
     }
 
     fn handle_event(&mut self) -> Result<Option<Message>> {
         if event::poll(std::time::Duration::from_millis(50))? {
             if let Event::Key(key) = event::read()? {
+                let msg = self.handle_key(key);
+                self.message = msg.unwrap();
                 return Ok(self.handle_key(key));
             }
         }
@@ -86,34 +88,31 @@ impl App {
             KeyCode::Char('a') => Some(Message::Add),
             KeyCode::Char('e') => Some(Message::Edit),
             KeyCode::Char('d') => Some(Message::Delete),
-            _ => None,
+            _ => Some(Message::None),
         }
     }
 
-    fn update(&mut self, msg: Message) -> Option<Message> {
-        match msg {
-            Message::Add => {
-                // self.add(frame);
-            }
-            Message::Edit => {
-                // self.edit(frame);
-            }
+    fn update(&mut self) -> Option<Message> {
+        match self.message {
+            Message::Add => {}
+            Message::Edit => {}
             Message::MoveUp => {
                 if (self.items.len() != 0) && self.task_selected != 0 {
                     self.task_selected -= 1;
                 }
+                self.message = Message::None;
             }
             Message::MoveDown => {
                 if !((self.items.len() == 0) || self.task_selected == (self.items.len() - 1)) {
                     self.task_selected += 1;
                 }
+                self.message = Message::None;
             }
-            Message::Delete => {
-                // self.delete();
-            }
+            Message::Delete => {}
             Message::Quit => {
                 self.state = RunningState::Done;
             }
+            Message::None => {}
         };
         None
     }
@@ -192,6 +191,28 @@ impl App {
     fn edit(&self, frame: &mut Frame, area: Rect) {}
     fn delete(&self, frame: &mut Frame, area: Rect) {}
     fn save(&self, frame: &mut Frame, area: Rect) {}
+
+    fn centered_rect(&self, percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
+        // Cut the given rectangle into three vertical pieces
+        let popup_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ])
+            .split(rect);
+
+        // Then cut the middle vertical piece into three width-wise pieces
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ])
+            .split(popup_layout[1])[1] // Return the middle chunk
+    }
 }
 
 impl Widget for &App {
@@ -210,5 +231,23 @@ impl Widget for &App {
         // Render Inner Layout
         let _ = self.render_task(main_layout[0], buf);
         let _ = self.render_option(main_layout[1], buf);
+
+        // if let Message::Add = self.message {
+        // }
+        match self.message {
+            Message::Add => {
+                let popup = Block::default()
+                    .title("Add a Task")
+                    .borders(Borders::ALL)
+                    .style(Style::new().black().on_gray());
+
+                let popup_area = self.centered_rect(60, 25, area);
+                Clear.render(popup_area, buf);
+                popup.render(popup_area, buf);
+            },
+            Message::Edit => {},
+            Message::Delete => {},
+            _ => {},
+        }
     }
 }
